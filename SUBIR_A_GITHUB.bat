@@ -27,19 +27,21 @@ if %errorlevel% neq 0 (
 :: Asegurar helper de credenciales de Windows
 "!GIT_CMD!" config --global credential.helper wincred 2>nul
 "!GIT_CMD!" branch -M main 2>nul
+"!GIT_CMD!" branch master 2>nul
 "!GIT_CMD!" remote set-url origin "https://github.com/odenriquezt89/auditoria-hc-fonocenter.git" 2>nul
 
-echo [1/2] Verificando rama principal 'main'...
-echo [2/2] Transfiriendo archivos a GitHub (git push)...
-echo.
 echo ----------------------------------------------------------------------
 echo NOTA: Si la consola le pide credenciales de GitHub:
 echo   - Username: odenriquezt89
 echo   - Password: Pegue su Personal Access Token (Token clásico de GitHub)
 echo ----------------------------------------------------------------------
 echo.
-
+echo Subiendo rama 'main'...
 "!GIT_CMD!" push -u origin main
+
+echo.
+echo Subiendo rama 'master'...
+"!GIT_CMD!" push -u origin master
 
 if !errorlevel! equ 0 (
     echo.
@@ -50,8 +52,8 @@ if !errorlevel! equ 0 (
 ) else (
     echo.
     echo ======================================================================
-    echo Hubo un fallo en la autenticacion de GitHub.
-    echo Asegurese de usar un Personal Access Token (PAT) con permiso 'repo'.
+    echo Si fallo la autenticacion, asegurese de pegar el Personal Access Token
+    echo (Token clasico generado en Settings -> Developer Settings -> Tokens).
     echo ======================================================================
 )
 
