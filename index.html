@@ -10349,7 +10349,7 @@ function onEdit(e) {
             const tarjeta = document.getElementById('userTarjeta')?.value.trim() || null;
             const email = document.getElementById('userEmail')?.value.trim().toLowerCase();
             const username = document.getElementById('userUsername')?.value.trim().toLowerCase();
-            const password = document.getElementById('userPassword')?.value;
+            const password = document.getElementById('userPassword')?.value ? document.getElementById('userPassword').value.trim() : '';
             const status = document.getElementById('userStatus')?.value === 'true';
 
             const canDelete = document.getElementById('perm_can_delete_audit')?.checked || false;
@@ -10665,29 +10665,43 @@ function onEdit(e) {
 
                 // 2. Fallback de verificación local (contra registeredUsers)
                 if (!authenticatedUser) {
-                    const normUser = normalizeStr(userInput);
-                    const match = registeredUsers.find(u => 
-                        normalizeStr(u.username) === normUser || 
-                        normalizeStr(u.correo) === normUser || 
-                        normalizeStr(u.documento_identidad) === normUser
-                    );
+                    // Asegurar que la lista de usuarios esté fresca desde localStorage
+                    loadUsers();
 
-                    if (match) {
-                        const validPass = match.password_plain 
-                            ? (match.password_plain === passInput)
-                            : (passInput === 'AdminFonocenter2026*' || passInput.length >= 6);
+                    const cleanUserInput = userInput.replace(/^@+/, '').trim();
+                    const normUser = normalizeStr(cleanUserInput);
+                    const normDigits = cleanUserInput.replace(/\D/g, '');
 
-                        if (validPass) {
-                            if (!match.estado) {
-                                throw new Error('Esta cuenta de usuario se encuentra suspendida o inactiva.');
-                            }
-                            authenticatedUser = match;
-                        }
+                    const match = registeredUsers.find(u => {
+                        const uName = normalizeStr((u.username || '').replace(/^@+/, ''));
+                        const uEmail = normalizeStr(u.correo || '');
+                        const uDoc = normalizeStr(u.documento_identidad || '');
+                        const uDocDigits = (u.documento_identidad || '').replace(/\D/g, '');
+
+                        return uName === normUser || 
+                               uEmail === normUser || 
+                               uDoc === normUser || 
+                               (normDigits && uDocDigits && uDocDigits === normDigits);
+                    });
+
+                    if (!match) {
+                        throw new Error(`El usuario o documento "${userInput}" no existe en este dispositivo. Verifique que esté bien escrito o regístrelo en este equipo.`);
                     }
-                }
 
-                if (!authenticatedUser) {
-                    throw new Error('Credenciales inválidas. Verifique su usuario y contraseña.');
+                    if (!match.estado) {
+                        throw new Error(`La cuenta de ${match.nombre_completo} se encuentra INACTIVA. Contacte al Administrador.`);
+                    }
+
+                    const cleanPassInput = passInput.trim();
+                    const validPass = match.password_plain 
+                        ? (match.password_plain.trim() === cleanPassInput)
+                        : (cleanPassInput === 'AdminFonocenter2026*' || cleanPassInput.length >= 6);
+
+                    if (!validPass) {
+                        throw new Error(`Contraseña incorrecta para el usuario ${match.nombre_completo}.`);
+                    }
+
+                    authenticatedUser = match;
                 }
 
                 // Sesión exitosa
