@@ -1444,6 +1444,15 @@
                         <i data-lucide="settings" class="w-4 h-4 text-teal-600"></i>
                         <span>Configurar Sheets</span>
                     </button>
+                    <button onclick="exportFullBackupJSON()" class="px-3.5 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs border border-amber-200 transition flex items-center gap-1.5 shadow-sm" title="Descargar copia de seguridad completa de todas las auditorías y ciclos">
+                        <i data-lucide="download-cloud" class="w-4 h-4 text-amber-600"></i>
+                        <span>Exportar Respaldo</span>
+                    </button>
+                    <button onclick="triggerImportBackupJSON()" class="px-3.5 py-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs border border-sky-200 transition flex items-center gap-1.5 shadow-sm" title="Restaurar o importar copia de seguridad de auditorías">
+                        <i data-lucide="upload-cloud" class="w-4 h-4 text-sky-600"></i>
+                        <span>Importar Respaldo</span>
+                    </button>
+                    <input type="file" id="backupJsonFileInput" accept=".json" class="hidden" onchange="handleImportBackupJSON(event)">
                     <button onclick="exportToCSV()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-700/20 transition flex items-center gap-2">
                         <i data-lucide="download" class="w-4 h-4"></i>
                         <span>Descargar CSV</span>
@@ -9122,6 +9131,91 @@
                 renderAdminViews();
                 showToast("Base de datos, ciclos y directorios reiniciados con datos de muestra", 'success');
             }
+        }
+
+        // Copia de Seguridad Completa (Exportar / Importar JSON para migración o respaldo)
+        function exportFullBackupJSON() {
+            try {
+                const backupData = {
+                    version: "2.0",
+                    exported_at: new Date().toISOString(),
+                    institution: "FONOCENTER IPS",
+                    audits: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'),
+                    cycles: JSON.parse(localStorage.getItem(CYCLES_STORAGE_KEY) || '[]'),
+                    doctors: JSON.parse(localStorage.getItem(DOCTORS_STORAGE_KEY) || '[]'),
+                    services: JSON.parse(localStorage.getItem(SERVICES_STORAGE_KEY) || '[]'),
+                    productivity: JSON.parse(localStorage.getItem(PRODUCTIVITY_STORAGE_KEY) || '[]'),
+                    reevaluations: JSON.parse(localStorage.getItem(REEVALUATIONS_STORAGE_KEY) || '[]'),
+                    users: JSON.parse(localStorage.getItem(RBAC_USERS_STORAGE_KEY) || '[]')
+                };
+
+                const jsonStr = JSON.stringify(backupData, null, 2);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                const dateStr = new Date().toISOString().slice(0, 10);
+                a.href = url;
+                a.download = `RESPALDO_AUDITORIAS_FONOCENTER_${dateStr}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`Copia de seguridad exportada con éxito (${backupData.audits.length} auditorías).`, "success");
+            } catch (err) {
+                showToast("Error al exportar respaldo: " + err.message, "error");
+            }
+        }
+
+        function triggerImportBackupJSON() {
+            const input = document.getElementById('backupJsonFileInput');
+            if (input) input.click();
+        }
+
+        function handleImportBackupJSON(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data || (!data.audits && !data.version)) {
+                        throw new Error("El archivo no tiene el formato válido de respaldo de FONOCENTER.");
+                    }
+
+                    let loadedCount = 0;
+                    if (Array.isArray(data.audits) && data.audits.length > 0) {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.audits));
+                        auditRecords = data.audits;
+                        loadedCount = data.audits.length;
+                    }
+                    if (Array.isArray(data.cycles) && data.cycles.length > 0) {
+                        localStorage.setItem(CYCLES_STORAGE_KEY, JSON.stringify(data.cycles));
+                        auditCycles = data.cycles;
+                    }
+                    if (Array.isArray(data.doctors) && data.doctors.length > 0) {
+                        localStorage.setItem(DOCTORS_STORAGE_KEY, JSON.stringify(data.doctors));
+                        doctorDirectory = data.doctors;
+                    }
+                    if (Array.isArray(data.services) && data.services.length > 0) {
+                        localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(data.services));
+                        serviceDirectory = data.services;
+                    }
+                    if (Array.isArray(data.productivity)) {
+                        localStorage.setItem(PRODUCTIVITY_STORAGE_KEY, JSON.stringify(data.productivity));
+                    }
+                    if (Array.isArray(data.reevaluations)) {
+                        localStorage.setItem(REEVALUATIONS_STORAGE_KEY, JSON.stringify(data.reevaluations));
+                    }
+
+                    showToast(`¡Respaldo importado exitosamente! Se restauraron ${loadedCount} auditorías.`, "success");
+                    setTimeout(() => window.location.reload(), 1200);
+                } catch (err) {
+                    showToast("Error al importar archivo: " + err.message, "error");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
         }
 
         // Exportar a CSV Estructurado
