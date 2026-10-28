@@ -1,0 +1,23 @@
+🏥 *FONOCENTER IPS | Notificación de Auditoría Médica* 🩺
+_Comité de Calidad y PAMEC (Res. 1995/1999 & 3100/2019)_
+
+Estimado(a) *Dr(a). {{ doctor_name }}*,
+
+Le informamos que ha finalizado la auditoría de calidad asistencial correspondiente a la Historia Clínica:
+
+📌 *ID Historia Clínica:* {{ hc_number }}
+🩺 *Especialidad / Servicio:* {{ specialty }}
+📅 *Fecha de Auditoría:* {{ audit_date }}
+📊 *Calificación Obtenida:* *{{ "%.1f"|format(score) }}%* ({{ risk_level }})
+
+{% if weak_criterion %}
+🎯 *Criterio con Oportunidad de Mejora:*
+_{{ weak_criterion }}_
+{% endif %}
+
+📋 *Hallazgo Clínico Prioritario & Recomendación:*
+{{ finding_detail }}
+
+Agradecemos su compromiso ético y profesional con la seguridad del paciente y la excelencia documental en *FONOCENTER IPS*.
+
+_Para observaciones o soporte técnico, comuníquese con el Área de Calidad Asistencial._

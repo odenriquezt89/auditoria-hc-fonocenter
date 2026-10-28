@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite and Local Runtime Database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# Keep structure with .gitkeep if needed
+!data/medicos_auditoria_bd.csv
+
+# Environment & Credentials
+.env
+.env.local
+*.key
+*.pem
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary & Log files
+*.log
+tmp/
+temp/
