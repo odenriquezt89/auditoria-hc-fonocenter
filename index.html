@@ -2104,9 +2104,9 @@
                             <i data-lucide="user-check" class="w-4 h-4"></i>
                             <span>Ver Mi Perfil</span>
                         </button>
-                        <button type="button" onclick="openUserLoginModal()" class="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition flex items-center gap-2">
-                            <i data-lucide="users" class="w-4 h-4"></i>
-                            <span>Cambiar Usuario</span>
+                        <button type="button" onclick="logoutSession()" class="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs transition flex items-center gap-2">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span>Cambiar Usuario / Salir</span>
                         </button>
                     </div>
                 </div>
@@ -2832,9 +2832,9 @@
 
             <!-- Footer -->
             <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 shrink-0">
-                <button type="button" onclick="closeUserProfileModal(); openUserLoginModal();" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200 border border-slate-300 transition flex items-center gap-1.5">
-                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
-                    <span>Cambiar de Usuario</span>
+                <button type="button" onclick="closeUserProfileModal(); logoutSession();" class="px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-100 border border-rose-200 transition flex items-center gap-1.5">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                    <span>Cambiar de Usuario / Cerrar Sesión</span>
                 </button>
                 <div class="flex items-center gap-2">
                     <button type="button" id="btnProfileGoManage" onclick="closeUserProfileModal(); switchTab('users');" class="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-md shadow-teal-700/20 transition flex items-center gap-1.5">
@@ -2845,81 +2845,6 @@
                         Cerrar
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: INICIO DE SESIÓN / CAMBIAR DE USUARIO -->
-    <div id="userLoginModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-            <!-- Header -->
-            <div class="p-5 bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 text-white flex items-center justify-between border-b border-teal-800/40 shrink-0">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-400/40 flex items-center justify-center text-teal-300">
-                        <i data-lucide="log-in" class="w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <span class="text-[10px] uppercase tracking-widest text-teal-300 font-bold">Autenticación RBAC</span>
-                        <h3 class="text-base font-bold">Iniciar Sesión / Cambiar Usuario</h3>
-                    </div>
-                </div>
-                <button onclick="closeUserLoginModal()" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-700 transition">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
-
-            <!-- Body -->
-            <div class="p-6 overflow-y-auto custom-scrollbar space-y-4 text-xs text-slate-700">
-                <!-- Selector Rápido de Usuarios Registrados -->
-                <div class="space-y-1.5">
-                    <label class="block font-bold text-slate-800 uppercase tracking-wider text-[11px]">
-                        Selección Rápida de Cuenta Registrada
-                    </label>
-                    <select id="loginQuickSelect" onchange="onLoginQuickSelect(this.value)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none transition">
-                        <!-- Populated by JS -->
-                    </select>
-                    <p class="text-[10px] text-slate-500">Seleccione un usuario activo para cargar automáticamente sus credenciales.</p>
-                </div>
-
-                <div class="relative flex py-1 items-center">
-                    <div class="flex-grow border-t border-slate-200"></div>
-                    <span class="flex-shrink mx-3 text-slate-400 text-[10px] uppercase font-bold">o ingrese manualmente</span>
-                    <div class="flex-grow border-t border-slate-200"></div>
-                </div>
-
-                <!-- Formulario de Credenciales -->
-                <form id="userLoginForm" onsubmit="handleLoginSubmit(event)" class="space-y-3.5">
-                    <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
-                            Nombre de Usuario o Correo *
-                        </label>
-                        <input type="text" id="loginUsernameInput" required placeholder="ej: daniel.enriquez" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none transition">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
-                            Contraseña *
-                        </label>
-                        <input type="password" id="loginPasswordInput" required placeholder="Contraseña de usuario" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-teal-500 outline-none transition">
-                    </div>
-
-                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 space-y-1">
-                        <div class="font-bold text-slate-800">Administrador Maestro por Defecto:</div>
-                        <div class="flex justify-between">
-                            <span>Usuario: <code class="font-bold text-teal-700">daniel.enriquez</code></span>
-                            <span>Clave: <code class="font-bold text-teal-700">AdminFonocenter2026*</code></span>
-                        </div>
-                    </div>
-
-                    <div class="pt-2 flex items-center justify-between gap-2">
-                        <button type="button" onclick="closeUserLoginModal()" class="px-4 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition">
-                            Cancelar
-                        </button>
-                        <button type="submit" class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md shadow-teal-700/30 transition flex items-center gap-1.5">
-                            <i data-lucide="check" class="w-4 h-4"></i>
-                            <span>Iniciar Sesión</span>
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
@@ -8109,19 +8034,6 @@
                         <span class="font-bold text-slate-800">${escapeHTML(record.riskLevel)}</span>
                     </div>
                 </div>
-                    <div>
-                        <span class="text-slate-400 block font-semibold">Identificación:</span>
-                        <span class="font-bold text-slate-800">${escapeHTML(record.patientId)}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block font-semibold">Fecha Auditoría:</span>
-                        <span class="font-bold text-slate-800">${escapeHTML(record.auditDate)}</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-400 block font-semibold">Nivel de Riesgo:</span>
-                        <span class="font-bold text-slate-800">${escapeHTML(record.riskLevel)}</span>
-                    </div>
-                </div>
 
                 <!-- 17 Criteria Detail Grid -->
                 <div class="space-y-2">
@@ -9198,7 +9110,7 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     if (!data || (!data.audits && !data.version)) {
@@ -10094,89 +10006,6 @@ function onEdit(e) {
             document.getElementById('userProfileModal')?.classList.add('hidden');
         }
 
-        function openUserLoginModal() {
-            const select = document.getElementById('loginQuickSelect');
-            if (select) {
-                select.innerHTML = '<option value="">-- Seleccionar cuenta registrada --</option>' +
-                    registeredUsers.filter(u => u.estado).map(u => `
-                        <option value="${escapeJsAttr(u.id)}">
-                            ${escapeHTML(u.nombre_completo)} (@${escapeHTML(u.username)}) - ${u.es_admin_principal ? 'ADMIN PRINCIPAL' : 'AUDITOR'}
-                        </option>
-                    `).join('');
-            }
-
-            const userInput = document.getElementById('loginUsernameInput');
-            const passInput = document.getElementById('loginPasswordInput');
-            if (userInput) userInput.value = '';
-            if (passInput) passInput.value = '';
-
-            document.getElementById('userLoginModal')?.classList.remove('hidden');
-            refreshIcons();
-        }
-
-        function closeUserLoginModal() {
-            document.getElementById('userLoginModal')?.classList.add('hidden');
-        }
-
-        function onLoginQuickSelect(userId) {
-            if (!userId) return;
-            const u = registeredUsers.find(x => x.id === userId);
-            if (!u) return;
-
-            const userInput = document.getElementById('loginUsernameInput');
-            const passInput = document.getElementById('loginPasswordInput');
-            if (userInput) userInput.value = u.username;
-            if (passInput) passInput.value = u.password_plain || (u.es_admin_principal ? 'AdminFonocenter2026*' : 'Auditor2026*');
-        }
-
-        function handleLoginSubmit(event) {
-            event.preventDefault();
-            const userVal = document.getElementById('loginUsernameInput')?.value.trim().toLowerCase();
-            const passVal = document.getElementById('loginPasswordInput')?.value.trim();
-
-            if (!userVal || !passVal) {
-                showToast('Por favor ingrese usuario y contraseña.', 'warning');
-                return;
-            }
-
-            // Buscar por username o correo
-            const match = registeredUsers.find(u => 
-                (u.username.toLowerCase() === userVal || u.correo.toLowerCase() === userVal)
-            );
-
-            if (!match) {
-                showToast('Usuario no encontrado o credenciales inválidas.', 'error');
-                return;
-            }
-
-            if (!match.estado) {
-                showToast('Esta cuenta se encuentra suspendida o inactiva.', 'error');
-                return;
-            }
-
-            // Validación de contraseña
-            const validPass = match.password_plain 
-                ? (match.password_plain === passVal) 
-                : (passVal === 'AdminFonocenter2026*' || passVal.length >= 6);
-
-            if (!validPass) {
-                showToast('Contraseña incorrecta.', 'error');
-                return;
-            }
-
-            currentUser = match;
-            localStorage.setItem(RBAC_CURRENT_USER_KEY, match.id);
-            updateUserUIState();
-            closeUserLoginModal();
-            showToast(`¡Bienvenido(a), ${match.nombre_completo}! Sesión iniciada como ${match.es_admin_principal ? 'Administrador Maestro' : 'Auditor'}.`, 'success');
-
-            // Si estaba en sección usuarios pero el nuevo usuario no es administrador principal, volver a tab capture
-            const secUsers = document.getElementById('section-users');
-            if (secUsers && !secUsers.classList.contains('hidden') && !match.es_admin_principal) {
-                switchTab('capture');
-            }
-        }
-
         function renderUsersManagementModule() {
             // KPIs
             const total = registeredUsers.length;
@@ -10540,24 +10369,25 @@ function onEdit(e) {
             document.getElementById('userStatus').value = u.estado ? 'true' : 'false';
 
             const p = u.permissions || {};
-            document.getElementById('perm_can_delete_audit').checked = u.es_admin_principal || !!p.can_delete_audit;
-            document.getElementById('perm_can_review_audit').checked = u.es_admin_principal || !!p.can_review_audit;
-            document.getElementById('perm_can_send_whatsapp').checked = u.es_admin_principal || !!p.can_send_whatsapp;
-            document.getElementById('perm_can_create_users').checked = u.es_admin_principal || !!p.can_create_users;
-            const viewOnlyChk = document.getElementById('perm_can_view_analysis_only');
-            if (viewOnlyChk) {
-                viewOnlyChk.checked = !u.es_admin_principal && !!p.can_view_analysis_only;
-                viewOnlyChk.disabled = isMaster;
-            }
-            onVisualizacionPermChange(viewOnlyChk);
+            const isMaster = !!u.es_admin_principal;
+            document.getElementById('perm_can_delete_audit').checked = isMaster || !!p.can_delete_audit;
+            document.getElementById('perm_can_review_audit').checked = isMaster || !!p.can_review_audit;
+            document.getElementById('perm_can_send_whatsapp').checked = isMaster || !!p.can_send_whatsapp;
+            document.getElementById('perm_can_create_users').checked = isMaster || !!p.can_create_users;
 
             // Si es admin principal, deshabilitar checkboxes de permisos y estado
-            const isMaster = !!u.es_admin_principal;
             document.getElementById('userStatus').disabled = isMaster;
             document.getElementById('perm_can_delete_audit').disabled = isMaster;
             document.getElementById('perm_can_review_audit').disabled = isMaster;
             document.getElementById('perm_can_send_whatsapp').disabled = isMaster;
             document.getElementById('perm_can_create_users').disabled = isMaster;
+
+            const viewOnlyChk = document.getElementById('perm_can_view_analysis_only');
+            if (viewOnlyChk) {
+                viewOnlyChk.checked = !isMaster && !!p.can_view_analysis_only;
+                viewOnlyChk.disabled = isMaster;
+            }
+            onVisualizacionPermChange(viewOnlyChk);
 
             document.getElementById('userFormTitle').textContent = `Modificar: ${u.nombre_completo}`;
             document.getElementById('userFormEditBadge')?.classList.remove('hidden');
