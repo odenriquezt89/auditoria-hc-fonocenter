@@ -7,3 +7,4 @@ python-dotenv>=1.0.0
 bcrypt>=4.0.0
 fastapi>=0.100.0
 uvicorn>=0.22.0
+streamlit>=1.30.0
