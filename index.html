@@ -2295,6 +2295,18 @@
                                         <div class="text-[10px] text-slate-500 leading-tight">Permiso para registrar, editar y administrar usuarios y privilegios del sistema.</div>
                                     </div>
                                 </label>
+
+                                <!-- can_view_analysis_only (Permiso de Visualización Exclusiva) -->
+                                <label class="flex items-start gap-3 cursor-pointer p-2.5 rounded-xl bg-amber-50/60 hover:bg-amber-100/60 border border-amber-200 transition">
+                                    <input type="checkbox" id="perm_can_view_analysis_only" onchange="onVisualizacionPermChange(this)" class="mt-0.5 rounded text-amber-600 focus:ring-amber-500 w-4 h-4 cursor-pointer">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-1.5 font-bold text-amber-900">
+                                            <span>visualizacion (Solo Análisis de Auditoría)</span>
+                                            <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-200 text-amber-900 border border-amber-300">Restringido</span>
+                                        </div>
+                                        <div class="text-[10px] text-amber-800 leading-tight">Permiso especial: el perfil ÚNICAMENTE podrá ver y consultar la pestaña "Análisis de Auditoría" (todas las demás secciones quedan bloqueadas).</div>
+                                    </div>
+                                </label>
                             </div>
                         </div>
 
@@ -3650,6 +3662,13 @@
         // 4. NAVEGACIÓN ENTRE SECCIONES
         // ----------------------------------------------------
         function switchTab(tabName) {
+            // Regla estricta para permiso de 'Visualización': Solo tiene acceso a Análisis de Auditoría
+            const isAnalysisOnly = currentUser && !currentUser.es_admin_principal && !!(currentUser.permissions && currentUser.permissions.can_view_analysis_only);
+            if (isAnalysisOnly && tabName !== 'analysis') {
+                showToast('Perfil con permiso exclusivo de Visualización: Únicamente tiene acceso a la pestaña "Análisis de Auditoría".', 'warning');
+                return;
+            }
+
             if (tabName === 'users' && (!currentUser || !currentUser.es_admin_principal)) {
                 showToast('Acceso denegado: Únicamente el Administrador Principal puede acceder a la gestión de usuarios y RBAC.', 'error');
                 return;
@@ -9896,10 +9915,15 @@ function onEdit(e) {
 
             if (initialsEl) initialsEl.textContent = initials;
             if (nameEl) nameEl.textContent = u.nombre_completo;
+            const isAnalysisOnly = !u.es_admin_principal && !!(u.permissions && u.permissions.can_view_analysis_only);
+
             if (roleBadgeEl) {
                 if (u.es_admin_principal) {
                     roleBadgeEl.textContent = 'ADMIN';
                     roleBadgeEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-teal-500/20 text-teal-300 border border-teal-500/30';
+                } else if (isAnalysisOnly) {
+                    roleBadgeEl.textContent = 'VISUALIZADOR';
+                    roleBadgeEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30';
                 } else {
                     roleBadgeEl.textContent = 'AUDITOR';
                     roleBadgeEl.className = 'px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-blue-500/20 text-blue-300 border border-blue-500/30';
@@ -9908,26 +9932,58 @@ function onEdit(e) {
             if (subEl) {
                 if (u.es_admin_principal) {
                     subEl.textContent = 'Todos los permisos';
+                } else if (isAnalysisOnly) {
+                    subEl.textContent = 'Solo Análisis de Auditoría';
                 } else {
                     const p = u.permissions || {};
                     const activeCount = [p.can_delete_audit, p.can_review_audit, p.can_send_whatsapp, p.can_create_users].filter(Boolean).length;
-                    subEl.textContent = `${activeCount} de 4 permisos`;
+                    subEl.textContent = `${activeCount} permisos activos`;
                 }
             }
 
-            // Control visual del tab 'Usuarios y RBAC' (Exclusivo Administrador Principal)
-            const tabUsers = document.getElementById('tab-users');
-            if (tabUsers) {
-                if (u.es_admin_principal) {
-                    tabUsers.classList.remove('hidden');
-                    tabUsers.classList.remove('opacity-40');
-                    tabUsers.title = 'Gestión de Usuarios y Permisos RBAC (Administrador Principal)';
-                } else {
-                    tabUsers.classList.add('hidden');
-                    tabUsers.title = 'Acceso exclusivo para el Administrador Principal';
-                    const secUsers = document.getElementById('section-users');
-                    if (secUsers && !secUsers.classList.contains('hidden')) {
-                        switchTab('capture');
+            // Control de Visibilidad de Pestañas según Rol y Permiso de Visualización
+            const standardTabs = ['capture', 'dashboard', 'phva', 'analysis', 'admin', 'records', 'revaluation', 'productivity'];
+            if (isAnalysisOnly) {
+                // Perfil con permiso exclusivo de Visualización: ocultar todas las demás pestañas
+                standardTabs.forEach(t => {
+                    const tabEl = document.getElementById(`tab-${t}`);
+                    if (tabEl) {
+                        if (t === 'analysis') {
+                            tabEl.classList.remove('hidden');
+                        } else {
+                            tabEl.classList.add('hidden');
+                        }
+                    }
+                });
+                const tabUsers = document.getElementById('tab-users');
+                if (tabUsers) tabUsers.classList.add('hidden');
+
+                // Asegurar que quede posicionado en la pestaña de análisis
+                const secAnalysis = document.getElementById('section-analysis');
+                if (!secAnalysis || secAnalysis.classList.contains('hidden')) {
+                    switchTab('analysis');
+                }
+            } else {
+                // Perfiles estándar o Admin: restaurar visibilidad de pestañas operativas
+                standardTabs.forEach(t => {
+                    const tabEl = document.getElementById(`tab-${t}`);
+                    if (tabEl) tabEl.classList.remove('hidden');
+                });
+
+                // Control visual del tab 'Usuarios y RBAC' (Exclusivo Administrador Principal)
+                const tabUsers = document.getElementById('tab-users');
+                if (tabUsers) {
+                    if (u.es_admin_principal) {
+                        tabUsers.classList.remove('hidden');
+                        tabUsers.classList.remove('opacity-40');
+                        tabUsers.title = 'Gestión de Usuarios y Permisos RBAC (Administrador Principal)';
+                    } else {
+                        tabUsers.classList.add('hidden');
+                        tabUsers.title = 'Acceso exclusivo para el Administrador Principal';
+                        const secUsers = document.getElementById('section-users');
+                        if (secUsers && !secUsers.classList.contains('hidden')) {
+                            switchTab('capture');
+                        }
                     }
                 }
             }
@@ -10165,6 +10221,7 @@ function onEdit(e) {
                 const canReview = u.es_admin_principal || !!p.can_review_audit;
                 const canWhatsApp = u.es_admin_principal || !!p.can_send_whatsapp;
                 const canCreate = u.es_admin_principal || !!p.can_create_users;
+                const canViewOnly = !u.es_admin_principal && !!p.can_view_analysis_only;
 
                 const isCurrent = currentUser && currentUser.id === u.id;
 
@@ -10196,11 +10253,15 @@ function onEdit(e) {
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-300">
                                         ADMIN MAESTRO
                                     </span>
+                                ` : (canViewOnly ? `
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300">
+                                        VISUALIZADOR
+                                    </span>
                                 ` : `
                                     <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-300">
                                         AUDITOR
                                     </span>
-                                `}
+                                `)}
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${u.estado ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-800 border border-rose-300'}">
                                     ${u.estado ? 'ACTIVO' : 'INACTIVO'}
                                 </span>
@@ -10208,6 +10269,9 @@ function onEdit(e) {
                         </td>
                         <td class="py-3 px-3 text-center">
                             <div class="inline-flex items-center gap-1">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-black ${canViewOnly ? 'bg-amber-100 text-amber-900 border border-amber-300 ring-1 ring-amber-400' : 'bg-slate-100 text-slate-400 border border-slate-200 line-through'}" title="visualizacion (Solo Análisis): ${canViewOnly ? 'Activo' : 'Inactivo'}">
+                                    VIS
+                                </span>
                                 <span class="px-1.5 py-0.5 rounded text-[9px] font-black ${canDelete ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-slate-100 text-slate-400 border border-slate-200 line-through'}" title="can_delete_audit: ${canDelete ? 'Permitido' : 'Revocado'}">
                                     DEL
                                 </span>
@@ -10248,6 +10312,30 @@ function onEdit(e) {
             refreshIcons();
         }
 
+        function onVisualizacionPermChange(chk) {
+            const isChecked = chk && chk.checked;
+            const delChk = document.getElementById('perm_can_delete_audit');
+            const revChk = document.getElementById('perm_can_review_audit');
+            const whaChk = document.getElementById('perm_can_send_whatsapp');
+            const usrChk = document.getElementById('perm_can_create_users');
+
+            if (isChecked) {
+                if (delChk) { delChk.checked = false; delChk.disabled = true; }
+                if (revChk) { revChk.checked = false; revChk.disabled = true; }
+                if (whaChk) { whaChk.checked = false; whaChk.disabled = true; }
+                if (usrChk) { usrChk.checked = false; usrChk.disabled = true; }
+            } else {
+                const editId = document.getElementById('userEditId')?.value;
+                const isMaster = editId ? !!(registeredUsers.find(x => x.id === editId)?.es_admin_principal) : false;
+                if (!isMaster) {
+                    if (delChk) delChk.disabled = false;
+                    if (revChk) revChk.disabled = false;
+                    if (whaChk) whaChk.disabled = false;
+                    if (usrChk) usrChk.disabled = false;
+                }
+            }
+        }
+
         function handleUserSubmit(event) {
             event.preventDefault();
             if (!currentUser || !currentUser.es_admin_principal) {
@@ -10268,6 +10356,12 @@ function onEdit(e) {
             const canReview = document.getElementById('perm_can_review_audit')?.checked || false;
             const canWhatsApp = document.getElementById('perm_can_send_whatsapp')?.checked || false;
             const canCreate = document.getElementById('perm_can_create_users')?.checked || false;
+            const canViewOnly = document.getElementById('perm_can_view_analysis_only')?.checked || false;
+
+            const effectiveCanDelete = canViewOnly ? false : canDelete;
+            const effectiveCanReview = canViewOnly ? false : canReview;
+            const effectiveCanWhatsApp = canViewOnly ? false : canWhatsApp;
+            const effectiveCanCreate = canViewOnly ? false : canCreate;
 
             // Validaciones básicas
             if (!fullName || !doc || !email || !username) {
@@ -10323,10 +10417,11 @@ function onEdit(e) {
                 if (!target.es_admin_principal) {
                     target.estado = status;
                     target.permissions = {
-                        can_delete_audit: canDelete,
-                        can_review_audit: canReview,
-                        can_send_whatsapp: canWhatsApp,
-                        can_create_users: canCreate
+                        can_delete_audit: effectiveCanDelete,
+                        can_review_audit: effectiveCanReview,
+                        can_send_whatsapp: effectiveCanWhatsApp,
+                        can_create_users: effectiveCanCreate,
+                        can_view_analysis_only: canViewOnly
                     };
                 }
                 target.updated_at = new Date().toISOString();
@@ -10358,10 +10453,11 @@ function onEdit(e) {
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                     permissions: {
-                        can_delete_audit: canDelete,
-                        can_review_audit: canReview,
-                        can_send_whatsapp: canWhatsApp,
-                        can_create_users: canCreate
+                        can_delete_audit: effectiveCanDelete,
+                        can_review_audit: effectiveCanReview,
+                        can_send_whatsapp: effectiveCanWhatsApp,
+                        can_create_users: effectiveCanCreate,
+                        can_view_analysis_only: canViewOnly
                     }
                 };
 
@@ -10397,6 +10493,12 @@ function onEdit(e) {
             document.getElementById('perm_can_review_audit').checked = u.es_admin_principal || !!p.can_review_audit;
             document.getElementById('perm_can_send_whatsapp').checked = u.es_admin_principal || !!p.can_send_whatsapp;
             document.getElementById('perm_can_create_users').checked = u.es_admin_principal || !!p.can_create_users;
+            const viewOnlyChk = document.getElementById('perm_can_view_analysis_only');
+            if (viewOnlyChk) {
+                viewOnlyChk.checked = !u.es_admin_principal && !!p.can_view_analysis_only;
+                viewOnlyChk.disabled = isMaster;
+            }
+            onVisualizacionPermChange(viewOnlyChk);
 
             // Si es admin principal, deshabilitar checkboxes de permisos y estado
             const isMaster = !!u.es_admin_principal;
@@ -10428,11 +10530,17 @@ function onEdit(e) {
             document.getElementById('perm_can_review_audit').disabled = false;
             document.getElementById('perm_can_send_whatsapp').disabled = false;
             document.getElementById('perm_can_create_users').disabled = false;
+            const viewOnlyReset = document.getElementById('perm_can_view_analysis_only');
+            if (viewOnlyReset) {
+                viewOnlyReset.checked = false;
+                viewOnlyReset.disabled = false;
+            }
 
             document.getElementById('perm_can_delete_audit').checked = false;
             document.getElementById('perm_can_review_audit').checked = true;
             document.getElementById('perm_can_send_whatsapp').checked = false;
             document.getElementById('perm_can_create_users').checked = false;
+            onVisualizacionPermChange(null);
 
             document.getElementById('userFormTitle').textContent = 'Registrar Nuevo Usuario';
             document.getElementById('userFormEditBadge')?.classList.add('hidden');

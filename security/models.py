@@ -37,6 +37,10 @@ class Permissions(BaseModel):
         default=False,
         description="Permiso para registrar, editar y administrar usuarios y permisos en el sistema."
     )
+    can_view_analysis_only: bool = Field(
+        default=False,
+        description="Permiso de visualización exclusiva: el usuario únicamente puede consultar la pestaña de Análisis de Auditoría."
+    )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -44,6 +48,7 @@ class Permissions(BaseModel):
             "can_review_audit": self.can_review_audit,
             "can_send_whatsapp": self.can_send_whatsapp,
             "can_create_users": self.can_create_users,
+            "can_view_analysis_only": self.can_view_analysis_only,
         }
 
 
@@ -147,6 +152,7 @@ class UserCreate(BaseModel):
     can_review_audit: bool = Field(default=True)
     can_send_whatsapp: bool = Field(default=False)
     can_create_users: bool = Field(default=False)
+    can_view_analysis_only: bool = Field(default=False)
 
     @field_validator("correo")
     @classmethod
@@ -180,6 +186,7 @@ class UserUpdate(BaseModel):
     can_review_audit: Optional[bool] = None
     can_send_whatsapp: Optional[bool] = None
     can_create_users: Optional[bool] = None
+    can_view_analysis_only: Optional[bool] = None
 
 
 class LoginRequest(BaseModel):

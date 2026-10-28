@@ -103,8 +103,8 @@ class UserService:
                 """
                 INSERT INTO permissions (
                     id, user_id, can_delete_audit, can_review_audit,
-                    can_send_whatsapp, can_create_users
-                ) VALUES (?, ?, 1, 1, 1, 1)
+                    can_send_whatsapp, can_create_users, can_view_analysis_only
+                ) VALUES (?, ?, 1, 1, 1, 1, 0)
                 """,
                 (perm_id, user_id)
             )
@@ -177,8 +177,8 @@ class UserService:
                 """
                 INSERT INTO permissions (
                     id, user_id, can_delete_audit, can_review_audit,
-                    can_send_whatsapp, can_create_users
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    can_send_whatsapp, can_create_users, can_view_analysis_only
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     perm_id,
@@ -187,6 +187,7 @@ class UserService:
                     1 if (data.es_admin_principal or data.can_review_audit) else 0,
                     1 if (data.es_admin_principal or data.can_send_whatsapp) else 0,
                     1 if (data.es_admin_principal or data.can_create_users) else 0,
+                    1 if data.can_view_analysis_only else 0,
                 )
             )
 
@@ -202,7 +203,7 @@ class UserService:
             cur = conn.execute(
                 """
                 SELECT u.*, p.id AS perm_id, p.can_delete_audit, p.can_review_audit,
-                       p.can_send_whatsapp, p.can_create_users
+                       p.can_send_whatsapp, p.can_create_users, p.can_view_analysis_only
                 FROM users u
                 LEFT JOIN permissions p ON p.user_id = u.id
                 WHERE u.username = ?
@@ -261,7 +262,7 @@ class UserService:
         with get_db_connection(self.db_path) as conn:
             query = """
                 SELECT u.*, p.id AS perm_id, p.can_delete_audit, p.can_review_audit,
-                       p.can_send_whatsapp, p.can_create_users
+                       p.can_send_whatsapp, p.can_create_users, p.can_view_analysis_only
                 FROM users u
                 LEFT JOIN permissions p ON p.user_id = u.id
             """
@@ -367,6 +368,10 @@ class UserService:
                     perm_updates.append("can_create_users = ?")
                     perm_params.append(1 if data.can_create_users else 0)
 
+                if data.can_view_analysis_only is not None:
+                    perm_updates.append("can_view_analysis_only = ?")
+                    perm_params.append(1 if data.can_view_analysis_only else 0)
+
                 if perm_updates:
                     perm_params.append(user_id)
                     conn.execute(f"UPDATE permissions SET {', '.join(perm_updates)} WHERE user_id = ?", tuple(perm_params))
@@ -404,7 +409,7 @@ class UserService:
         cur = conn.execute(
             """
             SELECT u.*, p.id AS perm_id, p.can_delete_audit, p.can_review_audit,
-                   p.can_send_whatsapp, p.can_create_users
+                   p.can_send_whatsapp, p.can_create_users, p.can_view_analysis_only
             FROM users u
             LEFT JOIN permissions p ON p.user_id = u.id
             WHERE u.id = ?
@@ -417,6 +422,7 @@ class UserService:
         return self._row_to_user_with_permissions(row)
 
     def _row_to_user_with_permissions(self, row: sqlite3.Row) -> UserWithPermissions:
+        has_analysis_col = "can_view_analysis_only" in row.keys()
         perms = Permissions(
             id=row["perm_id"] or str(uuid.uuid4()),
             user_id=row["id"],
@@ -424,6 +430,7 @@ class UserService:
             can_review_audit=bool(row["can_review_audit"]),
             can_send_whatsapp=bool(row["can_send_whatsapp"]),
             can_create_users=bool(row["can_create_users"]),
+            can_view_analysis_only=bool(row["can_view_analysis_only"]) if has_analysis_col else False,
         )
 
         return UserWithPermissions(

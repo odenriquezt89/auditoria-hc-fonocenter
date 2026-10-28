@@ -230,6 +230,34 @@ class TestSecurityRBAC(unittest.TestCase):
             self.service.delete_user(user3.id, operator_user_id=auditor.id)
         self.assertIn("Administrador Principal", str(ctx.exception))
 
+    def test_08_visualizacion_analysis_only_permission(self):
+        """Verifica la asignación y persistencia del permiso exclusivo de visualización (solo análisis)."""
+        master = self.service.get_user_by_username("daniel.enriquez")
+
+        viewer_data = UserCreate(
+            nombre_completo="Dra. Andrea Morales",
+            documento_identidad="98712345",
+            correo="andrea.morales@fonocenter.com",
+            username="andrea.morales",
+            password="ViewerPassword2026*",
+            can_delete_audit=False,
+            can_review_audit=False,
+            can_send_whatsapp=False,
+            can_create_users=False,
+            can_view_analysis_only=True
+        )
+        viewer = self.service.create_user(viewer_data, creator_user_id=master.id)
+        self.assertFalse(viewer.es_admin_principal)
+        self.assertTrue(viewer.permisos.can_view_analysis_only)
+        self.assertFalse(viewer.permisos.can_review_audit)
+        self.assertFalse(viewer.permisos.can_delete_audit)
+        self.assertFalse(viewer.permisos.can_create_users)
+
+        # Autenticación del usuario con permiso de visualización
+        auth = self.service.authenticate("andrea.morales", "ViewerPassword2026*")
+        self.assertTrue(auth.success)
+        self.assertTrue(auth.user.permisos.can_view_analysis_only)
+
 
 if __name__ == "__main__":
     unittest.main()

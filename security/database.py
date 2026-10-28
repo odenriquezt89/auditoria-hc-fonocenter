@@ -72,6 +72,7 @@ def init_db(db_path: str = None) -> None:
         can_review_audit INTEGER NOT NULL DEFAULT 1,
         can_send_whatsapp INTEGER NOT NULL DEFAULT 0,
         can_create_users INTEGER NOT NULL DEFAULT 0,
+        can_view_analysis_only INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
@@ -120,3 +121,8 @@ def init_db(db_path: str = None) -> None:
 
     with get_db_connection(db_path) as conn:
         conn.executescript(schema_sql)
+        # Migración segura: agregar can_view_analysis_only si la tabla permissions ya existía
+        cur = conn.execute("PRAGMA table_info(permissions)")
+        columns = [row["name"] for row in cur.fetchall()]
+        if "can_view_analysis_only" not in columns:
+            conn.execute("ALTER TABLE permissions ADD COLUMN can_view_analysis_only INTEGER NOT NULL DEFAULT 0")
