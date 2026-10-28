@@ -230,7 +230,7 @@ def serve_index():
 
 def main():
     local_ip = get_local_ip()
-    port = 8000
+    port = int(os.environ.get("PORT", 8000))
 
     print("\n" + "=" * 78)
     print("  FONOCENTER IPS - SERVIDOR DE AUDITORÍA CLÍNICA MULTIUSUARIO EN LÍNEA")
