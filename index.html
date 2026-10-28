@@ -10431,6 +10431,21 @@ function onEdit(e) {
                     currentUser = target;
                 }
 
+                // Sincronizar edición con servidor central si está en línea
+                syncUserToServer({
+                    nombre_completo: fullName,
+                    documento_identidad: doc,
+                    tarjeta_profesional: tarjeta,
+                    correo: email,
+                    estado: status,
+                    password: password || undefined,
+                    can_delete_audit: effectiveCanDelete,
+                    can_review_audit: effectiveCanReview,
+                    can_send_whatsapp: effectiveCanWhatsApp,
+                    can_create_users: effectiveCanCreate,
+                    can_view_analysis_only: canViewOnly
+                }, true, editId);
+
                 showToast(`Usuario "${fullName}" actualizado correctamente.`, 'success');
             } else {
                 // Creación de nuevo usuario
@@ -10462,6 +10477,24 @@ function onEdit(e) {
                 };
 
                 registeredUsers.push(newUser);
+
+                // Sincronizar creación con servidor central si está en línea
+                syncUserToServer({
+                    nombre_completo: fullName,
+                    documento_identidad: doc,
+                    tarjeta_profesional: tarjeta,
+                    correo: email,
+                    username: username,
+                    password: password,
+                    estado: status,
+                    es_admin_principal: false,
+                    can_delete_audit: effectiveCanDelete,
+                    can_review_audit: effectiveCanReview,
+                    can_send_whatsapp: effectiveCanWhatsApp,
+                    can_create_users: effectiveCanCreate,
+                    can_view_analysis_only: canViewOnly
+                }, false);
+
                 showToast(`Usuario "${fullName}" registrado exitosamente con sus permisos RBAC.`, 'success');
             }
 
@@ -10588,8 +10621,39 @@ function onEdit(e) {
             if (confirm(`🗑️ ¿Está seguro de eliminar definitivamente al usuario "${u.nombre_completo}" (@${u.username})?`)) {
                 registeredUsers = registeredUsers.filter(x => x.id !== userId);
                 saveUsers();
+                deleteUserFromServer(userId);
                 renderUsersManagementModule();
                 showToast(`Usuario "${u.nombre_completo}" eliminado del sistema.`, 'success');
+            }
+        }
+
+        async function syncUserToServer(userData, isEdit = false, userId = null) {
+            if (!isServerOnline) return;
+            try {
+                const endpoint = isEdit ? `${API_BASE_URL}/api/users/${userId}` : `${API_BASE_URL}/api/users`;
+                const method = isEdit ? 'PUT' : 'POST';
+                await fetch(endpoint, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-user-id': currentUser?.id || ''
+                    },
+                    body: JSON.stringify(userData)
+                });
+            } catch (err) {
+                console.warn("Fallo sincronización de usuario con servidor central:", err);
+            }
+        }
+
+        async function deleteUserFromServer(userId) {
+            if (!isServerOnline) return;
+            try {
+                await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'x-user-id': currentUser?.id || '' }
+                });
+            } catch (err) {
+                console.warn("Fallo al eliminar usuario en servidor central:", err);
             }
         }
 
