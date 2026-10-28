@@ -216,6 +216,11 @@ def save_cycle(cycle_data: Dict[str, Any]):
     return audit_service.save_cycle(cycle_data)
 
 
+@app.delete("/api/cycles/{cycle_id}")
+def delete_cycle(cycle_id: str):
+    return {"success": audit_service.delete_cycle(cycle_id)}
+
+
 # ----------------------------------------------------
 # 6. ENTREGA DE LA APLICACIÓN WEB (HTML / ASSETS)
 # ----------------------------------------------------

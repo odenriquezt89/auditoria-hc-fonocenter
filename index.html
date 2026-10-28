@@ -252,11 +252,12 @@
                         <span id="gsheetStatusDot" class="w-2 h-2 rounded-full bg-slate-500" title="Estado de conexión con Google Sheets"></span>
                     </button>
 
-                    <!-- Network LAN Status Badge -->
-                    <div id="headerNetworkBadge" class="hidden md:flex items-center space-x-1.5 px-3 py-2 rounded-2xl bg-slate-800/90 border border-slate-700 text-xs font-bold text-slate-300 shadow-sm shrink-0" title="Estado de conexión del Servidor de Red Local">
+                    <!-- Network LAN / Cloud Status Badge & Real-Time Sync Trigger -->
+                    <button onclick="syncServerData()" id="headerNetworkBadge" class="hidden md:flex items-center space-x-1.5 px-3 py-2 rounded-2xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 hover:text-white shadow-sm shrink-0 cursor-pointer transition" title="Servidor central conectado. Sincronización en tiempo real activa. Clic para forzar actualización inmediata.">
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="headerNetDot"></span>
-                        <span id="headerNetText" class="text-[11px] font-mono">LAN Online</span>
-                    </div>
+                        <span id="headerNetText" class="text-[11px] font-mono">En Línea</span>
+                        <i data-lucide="refresh-cw" class="w-3 h-3 text-teal-400"></i>
+                    </button>
 
                     <!-- User Session Badge & Switcher -->
                     <div class="relative shrink-0 flex items-center gap-1.5">
@@ -7100,6 +7101,7 @@
             auditCycles.unshift(newCycle);
             saveAuditCycles();
             saveAuditRecords();
+            sendCycleToServer(newCycle);
 
             trackProductivityAction(
                 'CICLO',
@@ -7132,6 +7134,7 @@
             auditCycles = auditCycles.filter(c => c.id !== cycleId);
             saveAuditCycles();
             saveAuditRecords();
+            deleteCycleFromServer(cycleId);
 
             renderCyclesUI();
             renderRecordsTable();
@@ -9207,10 +9210,25 @@
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(data.audits));
                         auditRecords = data.audits;
                         loadedCount = data.audits.length;
+                        if (isServerOnline) {
+                            for (const aud of data.audits) {
+                                await sendAuditToServer(aud);
+                            }
+                        }
                     }
                     if (Array.isArray(data.cycles) && data.cycles.length > 0) {
                         localStorage.setItem(CYCLES_STORAGE_KEY, JSON.stringify(data.cycles));
                         auditCycles = data.cycles;
+                        if (isServerOnline) {
+                            for (const cyc of data.cycles) {
+                                await sendCycleToServer(cyc);
+                            }
+                        }
+                    }
+                    if (Array.isArray(data.users) && data.users.length > 0 && isServerOnline) {
+                        for (const usr of data.users) {
+                            await syncUserToServer(usr);
+                        }
                     }
                     if (Array.isArray(data.doctors) && data.doctors.length > 0) {
                         localStorage.setItem(DOCTORS_STORAGE_KEY, JSON.stringify(data.doctors));
@@ -9227,8 +9245,8 @@
                         localStorage.setItem(REEVALUATIONS_STORAGE_KEY, JSON.stringify(data.reevaluations));
                     }
 
-                    showToast(`¡Respaldo importado exitosamente! Se restauraron ${loadedCount} auditorías.`, "success");
-                    setTimeout(() => window.location.reload(), 1200);
+                    showToast(`¡Respaldo importado y sincronizado con el servidor en la nube! Se restauraron ${loadedCount} auditorías.`, "success");
+                    setTimeout(() => window.location.reload(), 1500);
                 } catch (err) {
                     showToast("Error al importar archivo: " + err.message, "error");
                 }
@@ -10849,7 +10867,8 @@ function onEdit(e) {
                     // Actualizar UI del Header
                     if (headDot && headText) {
                         headDot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
-                        headText.textContent = `LAN: ${data.local_ip}:${data.port}`;
+                        const isCloud = window.location.hostname.includes('render.com') || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+                        headText.textContent = isCloud ? 'En Línea (Nube)' : `LAN: ${data.local_ip}:${data.port}`;
                     }
                     if (headBadge) headBadge.classList.remove('hidden');
 
@@ -10886,23 +10905,32 @@ function onEdit(e) {
             AppState.isSyncing = true;
 
             try {
-                // Sincronizar Auditorías desde el servidor
+                // 1. Sincronizar Auditorías desde el servidor
                 const resAudits = await fetch(`${API_BASE_URL}/api/audits`);
                 if (resAudits.ok) {
                     const serverAudits = await resAudits.json();
-                    if (Array.isArray(serverAudits) && serverAudits.length > 0) {
+                    if (Array.isArray(serverAudits)) {
                         const existingIds = new Set(serverAudits.map(a => a.id));
-                        // Conservar auditorías locales que aún no estén en el servidor
-                        const localOnly = auditRecords.filter(r => !existingIds.has(r.id));
+                        const sampleIds = new Set(['AUD-2026-001', 'AUD-2026-002', 'AUD-2026-003', 'AUD-2026-004', 'AUD-2026-005']);
+                        
+                        // Si el servidor ya contiene auditorías reales, filtramos los datos de muestra iniciales en equipos nuevos
+                        const localOnly = auditRecords.filter(r => !existingIds.has(r.id) && (serverAudits.length === 0 || !sampleIds.has(r.id)));
+                        
+                        // Subir al servidor cualquier auditoría local pendiente
                         for (const loc of localOnly) {
-                            sendAuditToServer(loc);
+                            await sendAuditToServer(loc);
                         }
-                        auditRecords = [...serverAudits, ...localOnly];
+
+                        if (serverAudits.length > 0) {
+                            auditRecords = [...serverAudits, ...localOnly];
+                        } else if (localOnly.length > 0) {
+                            auditRecords = localOnly;
+                        }
                         saveAuditRecords();
                     }
                 }
 
-                // Sincronizar Usuarios desde el servidor
+                // 2. Sincronizar Usuarios desde el servidor
                 const resUsers = await fetch(`${API_BASE_URL}/api/users`);
                 if (resUsers.ok) {
                     const serverUsers = await resUsers.json();
@@ -10913,20 +10941,35 @@ function onEdit(e) {
                     }
                 }
 
-                // Sincronizar Ciclos desde el servidor
+                // 3. Sincronizar Ciclos desde el servidor
                 const resCycles = await fetch(`${API_BASE_URL}/api/cycles`);
                 if (resCycles.ok) {
                     const serverCycles = await resCycles.json();
-                    if (Array.isArray(serverCycles) && serverCycles.length > 0) {
-                        auditCycles = serverCycles;
+                    if (Array.isArray(serverCycles)) {
+                        const existingCycleIds = new Set(serverCycles.map(c => c.id));
+                        const sampleCycleIds = new Set(['CYCLE-202609-01']);
+                        const localCyclesOnly = auditCycles.filter(c => !existingCycleIds.has(c.id) && (serverCycles.length === 0 || !sampleCycleIds.has(c.id)));
+                        for (const locC of localCyclesOnly) {
+                            await sendCycleToServer(locC);
+                        }
+                        if (serverCycles.length > 0) {
+                            auditCycles = [...serverCycles, ...localCyclesOnly];
+                        } else if (localCyclesOnly.length > 0) {
+                            auditCycles = localCyclesOnly;
+                        }
                         saveAuditCycles();
                     }
                 }
 
-                // Re-renderizar tablas
+                // Re-renderizar tablas e interfaces
+                populateFormDropdowns();
                 renderRecordsTable();
                 renderRevaluationTable();
                 renderDashboard();
+                renderPHVA();
+                if (typeof renderAuditAnalysis === 'function') renderAuditAnalysis();
+                if (typeof renderCyclesUI === 'function') renderCyclesUI();
+                if (typeof renderProductivity === 'function') renderProductivity();
                 updateLiveScore();
 
                 if (!silent) {
@@ -10966,6 +11009,36 @@ function onEdit(e) {
                 });
             } catch (err) {
                 console.warn("No se pudo eliminar la auditoría en el servidor:", err);
+            }
+        }
+
+        async function sendCycleToServer(cycle) {
+            if (!isServerOnline) return;
+            try {
+                await fetch(`${API_BASE_URL}/api/cycles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-user-id': currentUser?.id || ''
+                    },
+                    body: JSON.stringify(cycle)
+                });
+            } catch (err) {
+                console.warn("No se pudo transmitir el ciclo al servidor:", err);
+            }
+        }
+
+        async function deleteCycleFromServer(cycleId) {
+            if (!isServerOnline) return;
+            try {
+                await fetch(`${API_BASE_URL}/api/cycles/${cycleId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'x-user-id': currentUser?.id || ''
+                    }
+                });
+            } catch (err) {
+                console.warn("No se pudo eliminar el ciclo en el servidor:", err);
             }
         }
     </script>

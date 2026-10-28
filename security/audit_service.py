@@ -58,9 +58,9 @@ class AuditService:
         evals_json = json.dumps(data.get("evaluations", {}), ensure_ascii=False)
         comments_json = json.dumps(data.get("comments", {}), ensure_ascii=False)
 
-        auditor_id = auditor_user.id if auditor_user else data.get("auditorId")
-        auditor_name = auditor_user.nombre_completo if auditor_user else (data.get("auditorName") or "No especificado")
-        auditor_username = auditor_user.username if auditor_user else (data.get("auditorUsername") or "sistema")
+        auditor_id = data.get("auditorId") or (auditor_user.id if auditor_user else None)
+        auditor_name = data.get("auditorName") or (auditor_user.nombre_completo if auditor_user else "No especificado")
+        auditor_username = data.get("auditorUsername") or (auditor_user.username if auditor_user else "sistema")
 
         with get_db_connection(self.db_path) as conn:
             conn.execute(
@@ -168,6 +168,11 @@ class AuditService:
 
             cur = conn.execute("SELECT * FROM audit_cycles WHERE id = ?", (cycle_id,))
             return self._row_to_cycle_dict(cur.fetchone())
+
+    def delete_cycle(self, cycle_id: str) -> bool:
+        with get_db_connection(self.db_path) as conn:
+            cur = conn.execute("DELETE FROM audit_cycles WHERE id = ?", (cycle_id,))
+            return cur.rowcount > 0
 
     def _row_to_audit_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
         try:
